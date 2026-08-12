@@ -1,0 +1,52 @@
+project_id = "hgbuphpufacjkcjquupd"
+
+[functions.ai-mentor]
+verify_jwt = false
+
+[functions.strategy-builder]
+verify_jwt = false
+
+[functions.pitch-feedback]
+verify_jwt = false
+
+[functions.idea-generator]
+verify_jwt = false
+
+[functions.pitch-regenerator]
+verify_jwt = false
+
+[functions.idea-explorer]
+verify_jwt = false
+
+[functions.idea-validator]
+verify_jwt = false
+
+[functions.pitch-deck-generator]
+verify_jwt = false
+
+[functions.investor-matcher]
+verify_jwt = false
+
+[functions.lesson-verifier]
+verify_jwt = false
+
+[functions.idea-evolution]
+verify_jwt = false
+
+[functions.ai-chat]
+verify_jwt = false
+
+[functions.admin-intelligence]
+verify_jwt = false
+
+[functions.match-engine]
+verify_jwt = false
+
+[functions.broadcast-send]
+verify_jwt = false
+
+[functions.role-intelligence]
+verify_jwt = false
+
+[functions.hackradar-ingest]
+verify_jwt = false
