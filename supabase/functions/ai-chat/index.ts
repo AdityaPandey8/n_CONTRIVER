@@ -1,11 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
+import { checkRateLimit, corsHeaders, json, requireUser } from "../_shared/auth.ts";
 
 const MODULE_PROMPTS: Record<string, string> = {
   mentor: `You are CONTRIVERS AI Mentor — an expert startup advisor. Help founders validate ideas, find product-market fit, build MVPs, raise funding, and grow. Be concise, actionable, and supportive. Use markdown.`,
@@ -23,26 +18,48 @@ serve(async (req) => {
   }
 
   try {
+    // AUTH FIX: ai-chat previously accepted a client-supplied `userId` and
+    // used it — with the service-role client, which bypasses RLS — to read
+    // and write that user's persistent AI memory, and accepted a
+    // client-supplied `workspaceId` with no ownership check to pull a full
+    // idea workspace's private data. Anyone who knew (or guessed) another
+    // user's id/workspace id could read or corrupt their data. Fixed by
+    // requiring a valid JWT and deriving the identity from it exclusively.
+    const auth = await requireUser(req);
+    if (auth instanceof Response) return auth;
+    const { userId, admin } = auth;
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY missing");
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY"); // used only for semantic memory embeddings
 
-    const { messages, moduleType, workspaceContext, workspaceId, userId, conversationId } =
+    const { messages, moduleType, workspaceContext, workspaceId, conversationId } =
       await req.json();
     if (!Array.isArray(messages)) throw new Error("messages required");
+
+    // Cost-abuse guard: cap AI calls per user per module per hour.
+    const limited = await checkRateLimit(admin, userId, moduleType ?? "mentor", 30);
+    if (limited) return limited;
 
     const basePrompt =
       MODULE_PROMPTS[moduleType as string] ?? MODULE_PROMPTS.mentor;
 
-    // Admin service client for cache + usage logging
-    const admin = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
-
-    // Build unified workspace knowledge (derived, always fresh)
+    // Build unified workspace knowledge (derived, always fresh) — but only
+    // after confirming the caller actually owns this workspace. Without
+    // this check, any authenticated user could pass any workspaceId and
+    // read another founder's private idea details, validation, risk
+    // analysis, tasks, notes, and pitch deck.
     let liveContext = workspaceContext;
     let workspaceCacheVersion = 0;
     if (workspaceId) {
+      const { data: ws } = await admin
+        .from("idea_workspaces")
+        .select("id, user_id")
+        .eq("id", workspaceId)
+        .maybeSingle();
+      if (!ws || ws.user_id !== userId) {
+        return json({ error: "Forbidden: workspace does not belong to you" }, 403);
+      }
       const knowledge = await buildWorkspaceKnowledge(admin, workspaceId);
       liveContext = liveContext ?? knowledge.data;
       workspaceCacheVersion = knowledge.version;
@@ -94,10 +111,48 @@ serve(async (req) => {
       }
     }
 
+    const lastUserMsg = [...messages].reverse().find((m: { role: string }) => m.role === "user")?.content ?? "";
+
+    // ─────────────────────────────────────────────────────────────
+    // SEMANTIC MEMORY: RETRIEVE relevant past messages (any past chat)
+    // Uses the authenticated userId only — never a client-supplied one.
+    // ─────────────────────────────────────────────────────────────
+    let semanticMemoryBlock = "";
+    let queryEmbedding: number[] | null = null;
+    if (GEMINI_API_KEY && lastUserMsg) {
+      try {
+        queryEmbedding = await embedText(GEMINI_API_KEY, lastUserMsg);
+        if (queryEmbedding) {
+          const { data: memories, error: matchErr } = await admin.rpc(
+            "match_chat_memories",
+            {
+              query_embedding: queryEmbedding,
+              match_user_id: userId,
+              match_count: 6,
+            },
+          );
+          if (matchErr) console.error("match_chat_memories error", matchErr);
+          const relevant = (memories ?? []).filter(
+            (m: { similarity: number }) => m.similarity > 0.72,
+          );
+          if (relevant.length > 0) {
+            const lines = relevant
+              .map(
+                (m: { role: string; content: string }) =>
+                  `- (${m.role}) ${m.content.slice(0, 300)}`,
+              )
+              .join("\n");
+            semanticMemoryBlock = `\n\nRELEVANT PAST CONVERSATION (recalled by semantic search — use only if actually relevant to the current message):\n${lines}`;
+          }
+        }
+      } catch (e) {
+        console.error("semantic memory retrieval error", e);
+      }
+    }
+
     // Smart context window — keep last 20 turns
     const trimmedMessages = messages.slice(-20);
 
-    const lastUserMsg = [...messages].reverse().find((m: { role: string }) => m.role === "user")?.content ?? "";
     const cacheKey = await sha256(
       `${moduleType}|${workspaceId ?? ""}|v${workspaceCacheVersion}|${userId ?? ""}|${lastUserMsg}|${(memoryRow?.memory_summary ?? "").slice(0, 200)}`,
     );
@@ -137,7 +192,7 @@ serve(async (req) => {
     }
 
     const aiMessages = [
-      { role: "system", content: basePrompt + contextBlock + memoryBlock },
+      { role: "system", content: basePrompt + contextBlock + memoryBlock + semanticMemoryBlock },
       ...trimmedMessages.map((m: { role: string; content: string }) => ({
         role: m.role === "assistant" ? "assistant" : "user",
         content: m.content,
@@ -224,6 +279,36 @@ serve(async (req) => {
           }),
         ]);
 
+        // ─────────────────────────────────────────────────────────
+        // SEMANTIC MEMORY: STORE this turn's messages as embeddings
+        // ─────────────────────────────────────────────────────────
+        if (GEMINI_API_KEY) {
+          try {
+            const rowsToEmbed: Array<{ role: string; content: string }> = [];
+            if (lastUserMsg) rowsToEmbed.push({ role: "user", content: lastUserMsg });
+            if (aggregated) rowsToEmbed.push({ role: "assistant", content: aggregated });
+
+            for (const row of rowsToEmbed) {
+              // Reuse the already-computed query embedding for the user's
+              // message to avoid a duplicate embeddings API call.
+              const vec =
+                row.role === "user" && queryEmbedding
+                  ? queryEmbedding
+                  : await embedText(GEMINI_API_KEY, row.content);
+              if (!vec) continue;
+              await admin.from("chat_message_embeddings").insert({
+                user_id: userId,
+                session_id: conversationId ?? null,
+                role: row.role,
+                content: row.content.slice(0, 4000),
+                embedding: vec,
+              });
+            }
+          } catch (e) {
+            console.error("semantic memory store error", e);
+          }
+        }
+
         // Memory summarizer: hourly, when conversation has enough signal
         if (userId) {
           try {
@@ -272,6 +357,33 @@ async function sha256(input: string): Promise<string> {
 
 function estimateTokens(s: string): number {
   return Math.ceil(s.length / 4);
+}
+
+// Calls Gemini's text-embedding-004 model (768 dimensions — matches chat_message_embeddings.embedding)
+async function embedText(apiKey: string, text: string): Promise<number[] | null> {
+  if (!text || !text.trim()) return null;
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          content: { parts: [{ text: text.slice(0, 8000) }] },
+        }),
+      },
+    );
+    if (!res.ok) {
+      console.error("embedText error", res.status, await res.text());
+      return null;
+    }
+    const json = await res.json();
+    const values = json?.embedding?.values;
+    return Array.isArray(values) ? values : null;
+  } catch (e) {
+    console.error("embedText fetch error", e);
+    return null;
+  }
 }
 
 async function summarizeAndSaveMemory(opts: {
