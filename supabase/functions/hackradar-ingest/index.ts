@@ -646,6 +646,19 @@ async function runSource(admin: ReturnType<typeof createClient>, slug: string) {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
+  // SECURITY FIX: this endpoint has verify_jwt=false (it's meant to be
+  // triggered by a cron job, not a logged-in user) and previously had no
+  // check at all — anyone who found the URL could trigger ingestion runs
+  // and control which sources ran. Require the shared cron secret instead.
+  const cronSecret = Deno.env.get("HACKRADAR_CRON_SECRET");
+  const providedSecret = req.headers.get("x-cron-secret");
+  if (cronSecret && providedSecret !== cronSecret) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });

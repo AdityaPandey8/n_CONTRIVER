@@ -31,9 +31,25 @@ serve(async (req) => {
       if (!isAdmin) return json({ error: "Admin only for bulk" }, 403);
     }
 
+    // SECURITY FIX: a non-admin caller could previously pass any userId in
+    // single-target mode and this function would compute + write match
+    // scores for that other user using the service-role client (bypassing
+    // RLS). Only admins may target someone other than themselves.
+    let targetUserId = caller;
+    if (!all && userId && userId !== caller) {
+      if (!isAdmin) {
+        const { data } = await admin.rpc("has_role", { _user_id: caller, _role: "admin" });
+        isAdmin = !!data;
+      }
+      if (!isAdmin) {
+        return json({ error: "Forbidden: cannot compute matches for another user" }, 403);
+      }
+      targetUserId = userId;
+    }
+
     const targetUsers = all
       ? (await admin.from("profiles").select("id").limit(200)).data ?? []
-      : [{ id: userId ?? caller }];
+      : [{ id: targetUserId }];
 
     let processed = 0;
     for (const u of targetUsers) {
