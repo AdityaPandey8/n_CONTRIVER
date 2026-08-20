@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { requireUser, checkRateLimit } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -9,13 +10,16 @@ const corsHeaders = {
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  try {
+    try {
+    const auth = await requireUser(req);
+    if (auth instanceof Response) return auth;
+    const { userId, admin } = auth;
+    const limited = await checkRateLimit(admin, userId, "investor-matcher", 30);
+    if (limited) return limited;
+
     const { domain, stage, validationScore } = await req.json();
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
+    const supabase = admin;
 
     const { data: investors, error } = await supabase.from("investors").select("*");
     if (error) throw error;

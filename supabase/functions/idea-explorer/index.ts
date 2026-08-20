@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { requireUser, checkRateLimit } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -8,7 +9,13 @@ const corsHeaders = {
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  try {
+    try {
+    const auth = await requireUser(req);
+    if (auth instanceof Response) return auth;
+    const { userId, admin } = auth;
+    const limited = await checkRateLimit(admin, userId, "idea-explorer", 30);
+    if (limited) return limited;
+
     const { idea } = await req.json();
     if (!idea) throw new Error("Missing idea input");
 
