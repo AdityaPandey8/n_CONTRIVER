@@ -15,8 +15,11 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { getDashboardPathForRole } from "@/lib/dashboardRoutes";
 
+// Investor and Startup roles are frozen for V1 (see src/lib/featureFlags.ts)
+// — not selectable during onboarding. Existing accounts with those roles
+// are unaffected; getDashboardPathForRole() routes them to /dashboard.
 type RoleOption = {
-  id: "student" | "startup" | "mentor" | "investor";
+  id: "student" | "mentor";
   title: string;
   description: string;
   icon: React.ElementType;
@@ -34,28 +37,12 @@ const roleOptions: RoleOption[] = [
     features: ["Submit & validate ideas", "Join hackathons", "Connect with mentors"],
   },
   {
-    id: "startup",
-    title: "Startup Founder",
-    description: "Scaling a venture",
-    icon: Rocket,
-    color: "from-rose-500 to-pink-600",
-    features: ["Showcase startup", "Connect with investors", "Access resources"],
-  },
-  {
     id: "mentor",
     title: "Mentor",
     description: "Guiding the next generation",
     icon: Users,
     color: "from-emerald-500 to-teal-600",
     features: ["Share expertise", "Book sessions", "Build reputation"],
-  },
-  {
-    id: "investor",
-    title: "Investor",
-    description: "Finding promising opportunities",
-    icon: TrendingUp,
-    color: "from-violet-500 to-purple-600",
-    features: ["Discover startups", "Track portfolio", "Deal flow access"],
   },
 ];
 

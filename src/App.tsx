@@ -81,6 +81,9 @@ import IdeaEvolutionAnalytics from "./pages/admin/IdeaEvolutionAnalytics";
 import Broadcast from "./pages/admin/Broadcast";
 import RealtimeMonitor from "./pages/admin/RealtimeMonitor";
 import HackRadarIngestion from "./pages/admin/HackRadarIngestion";
+// Frozen for V1 (see src/lib/featureFlags.ts) — components kept & imported
+// so routes/components aren't deleted, but rendered via ComingSoon in the
+// route table below instead of directly.
 import InvestorDashboard from "./pages/dashboard/InvestorDashboard";
 import InvestorDiscover from "./pages/dashboard/InvestorDiscover";
 import InvestorWatchlist from "./pages/dashboard/InvestorWatchlist";
@@ -92,11 +95,14 @@ import MentorMentees from "./pages/dashboard/MentorMentees";
 import MentorSessions from "./pages/dashboard/MentorSessions";
 import MentorFeedback from "./pages/dashboard/MentorFeedback";
 import MentorResources from "./pages/dashboard/MentorResources";
+// Frozen for V1 (see src/lib/featureFlags.ts) — kept & imported, rendered
+// via ComingSoon in the route table below instead of directly.
 import FounderDashboard from "./pages/dashboard/FounderDashboard";
 import FounderFundraising from "./pages/dashboard/FounderFundraising";
 import FounderTeam from "./pages/dashboard/FounderTeam";
 import FounderAnalytics from "./pages/dashboard/FounderAnalytics";
 import FounderTasks from "./pages/dashboard/FounderTasks";
+import ComingSoon from "./pages/dashboard/ComingSoon";
 
 const queryClient = new QueryClient();
 
@@ -170,8 +176,8 @@ const App = () => (
                 <Route path="pitch-feedback" element={<Navigate to="/dashboard/ai/pitch_feedback" replace />} />
                 <Route path="jobs" element={<Jobs />} />
                 <Route path="talents" element={<Talents />} />
-                <Route path="investor-connect" element={<InvestorConnect />} />
-                <Route path="investor/:investorId" element={<InvestorProfile />} />
+                <Route path="investor-connect" element={<ComingSoon title="Investor Connect" description="The investor marketplace isn't part of the current version yet. It'll return in a future release." />} />
+                <Route path="investor/:investorId" element={<ComingSoon title="Investor Connect" description="The investor marketplace isn't part of the current version yet. It'll return in a future release." />} />
                 <Route path="pitch-deck-studio" element={<PitchDeckStudio />} />
                 <Route path="learning" element={<Learning />} />
                 <Route path="hackathon/:hackathonId" element={<HackathonDetail />} />
@@ -180,13 +186,13 @@ const App = () => (
                 <Route path="mentor/:mentorId" element={<MentorProfile />} />
                 <Route path="job/:jobId" element={<JobDetail />} />
 
-                {/* Investor */}
-                <Route path="investor" element={<InvestorDashboard />} />
-                <Route path="investor/discover" element={<InvestorDiscover />} />
-                <Route path="investor/watchlist" element={<InvestorWatchlist />} />
-                <Route path="investor/pipeline" element={<InvestorPipeline />} />
-                <Route path="investor/portfolio" element={<InvestorPortfolio />} />
-                <Route path="investor/insights" element={<InvestorInsights />} />
+                {/* Investor — frozen for V1, see src/lib/featureFlags.ts */}
+                <Route path="investor" element={<ComingSoon title="Investor Dashboard" description="The Investor Dashboard isn't part of the current version yet. It'll return in a future release." />} />
+                <Route path="investor/discover" element={<ComingSoon title="Investor Dashboard" description="The Investor Dashboard isn't part of the current version yet. It'll return in a future release." />} />
+                <Route path="investor/watchlist" element={<ComingSoon title="Investor Dashboard" description="The Investor Dashboard isn't part of the current version yet. It'll return in a future release." />} />
+                <Route path="investor/pipeline" element={<ComingSoon title="Investor Dashboard" description="The Investor Dashboard isn't part of the current version yet. It'll return in a future release." />} />
+                <Route path="investor/portfolio" element={<ComingSoon title="Investor Dashboard" description="The Investor Dashboard isn't part of the current version yet. It'll return in a future release." />} />
+                <Route path="investor/insights" element={<ComingSoon title="Investor Dashboard" description="The Investor Dashboard isn't part of the current version yet. It'll return in a future release." />} />
 
                 {/* Mentor */}
                 <Route path="mentor" element={<MentorDashboard />} />
@@ -195,12 +201,12 @@ const App = () => (
                 <Route path="mentor/feedback" element={<MentorFeedback />} />
                 <Route path="mentor/resources" element={<MentorResources />} />
 
-                {/* Founder */}
-                <Route path="founder" element={<FounderDashboard />} />
-                <Route path="founder/fundraising" element={<FounderFundraising />} />
-                <Route path="founder/team" element={<FounderTeam />} />
-                <Route path="founder/analytics" element={<FounderAnalytics />} />
-                <Route path="founder/tasks" element={<FounderTasks />} />
+                {/* Founder — frozen for V1, see src/lib/featureFlags.ts */}
+                <Route path="founder" element={<ComingSoon title="Founder Dashboard" description="The Founder Dashboard isn't part of the current version yet. It'll return in a future release." />} />
+                <Route path="founder/fundraising" element={<ComingSoon title="Founder Dashboard" description="The Founder Dashboard isn't part of the current version yet. It'll return in a future release." />} />
+                <Route path="founder/team" element={<ComingSoon title="Founder Dashboard" description="The Founder Dashboard isn't part of the current version yet. It'll return in a future release." />} />
+                <Route path="founder/analytics" element={<ComingSoon title="Founder Dashboard" description="The Founder Dashboard isn't part of the current version yet. It'll return in a future release." />} />
+                <Route path="founder/tasks" element={<ComingSoon title="Founder Dashboard" description="The Founder Dashboard isn't part of the current version yet. It'll return in a future release." />} />
               </Route>
             </Route>
 

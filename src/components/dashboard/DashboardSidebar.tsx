@@ -27,7 +27,6 @@ const innovationNavItems: NavItem[] = [
   { title: "Contrivers AI", url: "/dashboard/ai", icon: Wand2 },
   { title: "My Ideas", url: "/dashboard/my-ideas", icon: FolderOpen },
   { title: "Ideas Hub", url: "/dashboard/ideas", icon: Lightbulb },
-  { title: "Investor Connect", url: "/dashboard/investor-connect", icon: DollarSign },
   { title: "Learning", url: "/dashboard/learning", icon: GraduationCap },
 ];
 
@@ -87,16 +86,16 @@ export function DashboardSidebar() {
   const { unreadCount } = useNotifications();
   const collapsed = state === "collapsed";
 
-  // Role-specific layout: replaces the default Innovation Hub + Community sections
+  // Role-specific layout: replaces the default Innovation Hub + Community
+  // sections. Investor and Startup are frozen for V1 (see
+  // src/lib/featureFlags.ts) — investorNavItems/founderNavItems are kept
+  // below (unused) rather than deleted, so re-enabling a role later is a
+  // one-line change back to the ternary that used them.
   const roleNav: NavItem[] | null =
-    role === "investor" ? investorNavItems
-    : role === "mentor" ? mentorNavItems
-    : role === "startup" ? founderNavItems
+    role === "mentor" ? mentorNavItems
     : null;
   const roleLabel =
-    role === "investor" ? "Investor"
-    : role === "mentor" ? "Mentor"
-    : role === "startup" ? "Founder"
+    role === "mentor" ? "Mentor"
     : null;
 
   const handleNavClick = () => {
