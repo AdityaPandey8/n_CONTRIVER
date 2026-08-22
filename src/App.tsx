@@ -169,22 +169,22 @@ const App = () => (
                 <Route path="hackathons" element={<Hackathons />} />
                 <Route path="hackradar" element={<Hackathons />} />
                 <Route path="hackradar/:hackathonId" element={<HackathonDetail />} />
-                <Route path="startups" element={<Startups />} />
+                <Route path="startups" element={<ComingSoon title="Startups" description="Startups isn't part of the current version yet. It'll return in a future release." />} />
                 <Route path="messages" element={<Messages />} />
                 <Route path="ai-mentor" element={<Navigate to="/dashboard/ai/mentor" replace />} />
                 <Route path="strategy-builder" element={<Navigate to="/dashboard/ai/strategy" replace />} />
                 <Route path="pitch-feedback" element={<Navigate to="/dashboard/ai/pitch_feedback" replace />} />
-                <Route path="jobs" element={<Jobs />} />
+                <Route path="jobs" element={<ComingSoon title="Jobs" description="Jobs isn't part of the current version yet. It'll return in a future release." />} />
                 <Route path="talents" element={<Talents />} />
                 <Route path="investor-connect" element={<ComingSoon title="Investor Connect" description="The investor marketplace isn't part of the current version yet. It'll return in a future release." />} />
                 <Route path="investor/:investorId" element={<ComingSoon title="Investor Connect" description="The investor marketplace isn't part of the current version yet. It'll return in a future release." />} />
                 <Route path="pitch-deck-studio" element={<PitchDeckStudio />} />
                 <Route path="learning" element={<Learning />} />
                 <Route path="hackathon/:hackathonId" element={<HackathonDetail />} />
-                <Route path="startup/:startupId" element={<StartupProfile />} />
+                <Route path="startup/:startupId" element={<ComingSoon title="Startups" description="Startups isn't part of the current version yet. It'll return in a future release." />} />
                 <Route path="talent/:talentId" element={<TalentProfile />} />
                 <Route path="mentor/:mentorId" element={<MentorProfile />} />
-                <Route path="job/:jobId" element={<JobDetail />} />
+                <Route path="job/:jobId" element={<ComingSoon title="Jobs" description="Jobs isn't part of the current version yet. It'll return in a future release." />} />
 
                 {/* Investor — frozen for V1, see src/lib/featureFlags.ts */}
                 <Route path="investor" element={<ComingSoon title="Investor Dashboard" description="The Investor Dashboard isn't part of the current version yet. It'll return in a future release." />} />

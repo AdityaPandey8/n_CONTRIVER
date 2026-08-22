@@ -30,11 +30,12 @@ const innovationNavItems: NavItem[] = [
   { title: "Learning", url: "/dashboard/learning", icon: GraduationCap },
 ];
 
+// Jobs and Startups are frozen for Student/Innovator (see
+// src/lib/featureFlags.ts) - hidden here, routes protected in App.tsx.
+// Admin retains full access via /admin/jobs and /admin/startups.
 const communityNavItems: NavItem[] = [
   { title: "Mentors", url: "/dashboard/mentors", icon: Users },
-  { title: "Jobs", url: "/dashboard/jobs", icon: Briefcase },
   { title: "Talents", url: "/dashboard/talents", icon: UserCheck },
-  { title: "Startups", url: "/dashboard/startups", icon: Rocket },
   { title: "HackRadar", url: "/dashboard/hackradar", icon: Radar },
 ];
 
